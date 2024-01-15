@@ -2,14 +2,15 @@ import requests
 import csv
 # BeautifulSoup
 from bs4 import BeautifulSoup
+from urllib.parse import urljoin
 
 
 # url to scrape
 url = "http://books.toscrape.com/catalogue/sharp-objects_997/index.html"
-page = requests.get(url)
+response = requests.get(url)
 
 # Turn HTML to BeautifulSoup object
-soup = BeautifulSoup(page.content, 'html.parser')
+soup = BeautifulSoup(response.content, 'html.parser')
 
 # Get information from website using soup
 product_page_url = []
@@ -46,14 +47,18 @@ print(image_url2)
 print("Phase 2 --------------------------------------------------------")
 
 url3 = 'http://books.toscrape.com/catalogue/category/books/science_22/index.html'
-page2 = requests.get(url3)
-Book_url = []
+response2 = requests.get(url3)
+soup = BeautifulSoup(response2.content, 'html.parser')
+#Book_url = []
 
-for link in soup.find_all('a', href=True):
-    url3 = link['href']
-Book_url.append('http://books.toscrape.com/catalogue' + url3)
-print(Book_url)
+#for link in soup.find_all('a', href=True):
+Book_url = [urljoin(url, link['href']) for link in soup.select('h3 a')]
 
+print("book urls in category")
+for url in Book_url:
+    print(Book_url)
+
+#function to get all url for science category
 
 
 
