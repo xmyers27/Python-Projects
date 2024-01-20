@@ -2,41 +2,38 @@ import requests
 from bs4 import BeautifulSoup
 import csv
 import pandas as pd
-import os
 
-URL = 'https://books.toscrape.com/catalogue/page-'
+base_url = 'http://books.toscrape.com/catalogue/category/books/young-adult_21'
+URL = f'{base_url}/page-'
 
 books = []
-Price = []
-Stock_availability = []
 Books_url = []
-# For loop to crawl and get information from multiple pages.
-for page in range(1, 5):
-    Source = requests.get(URL + str(page) + '.html')
-    Scrape = BeautifulSoup(Source.text, 'html.parser')
-    # print(Scrape.prettify())
 
-    # Grabbing book titles
-    for article in Scrape.find_all('article'):
-        books.append(article.h3.a.text)
-        # print(books)
-        # Grabbing book price
-        Price.append(article.find('div', class_='product_price').p.text)
-        # print(Price)
+for page in range(1, 2):
+    source = requests.get(f'{URL}{page}.html')
+    if source.status_code != 200:
+        print(f"Failed to fetch page {page}. Status code: {source.status_code}")
+        continue
 
-        # Grabbing stock availability of each book
-        Stock = Scrape.find('p', class_='instock availability').text.strip()
-        Stock_availability.append(Stock)
-        # print(Stock_availability)
+    scrape = BeautifulSoup(source.text, 'html.parser')
+
+    for article in scrape.find_all('article'):
+        # Grabbing book titles
+        title_element = article.h3.a
+        title = title_element.text.strip() if title_element else ''
+        books.append(title)
 
         # Grabbing the link of each book
-        for link in article.find_all('a', href=True):
-            url = link['href']
-        Books_url.append('https://books.toscrape.com/catalogue/' + url)
-        #print(Books_url)
+        link_element = article.find('a', href=True)
+        url = f"{base_url}/{link_element['href']}" if link_element else ''
+        Books_url.append(url)
 
-#outputs to csv
-Scraped_Data = {'TITLE': books, 'PRICE': Price, 'STOCK AVAILABILTY': Stock_availability, 'URL': Books_url}
-Scraped_Books = pd.DataFrame(Scraped_Data)
-Scraped_Books[:5]
-Scraped_Books.to_csv('SCB.csv', index=None)
+# Outputs to CSV
+scraped_data = {'TITLE': books, 'URL': Books_url}
+scraped_books_df = pd.DataFrame(scraped_data)
+scraped_books_df.to_csv('SCB.csv', index=None)
+
+print(Books_url)
+
+
+
