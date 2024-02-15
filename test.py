@@ -1,26 +1,40 @@
 import requests
 from bs4 import BeautifulSoup
-import csv
 import pandas as pd
 
-URL = 'https://books.toscrape.com/catalogue/page-'
-
+base_url = 'https://books.toscrape.com/catalogue/page-'
+current_page = 1
 books = []
-Price = []
-Stock_availability = []
-Books_url = []
+prices = []
+stock_availability = []
+books_url = []
 upc = []
 book_description = []
 
-for page in range(1, 2):
-    Source = requests.get(URL + str(page) + '.html')
-    if Source.status_code != 200:
-        print(f"Failed to fetch page {page}. Status code: {Source.status_code}")
+# Function to get total number of pages
+def get_total_pages():
+    response = requests.get(base_url + '1.html')
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.text, 'html.parser')
+        pager = soup.find('ul', class_='pager')
+        if pager:
+            last_page = int(pager.find_all('li')[-2].text.strip())
+            return last_page
+    return 1  # If total pages not found, return 1
+
+total_pages = get_total_pages()
+
+# Loop through all pages
+while current_page <= total_pages:
+    url = f'{base_url}{current_page}.html'
+    response = requests.get(url)
+    if response.status_code != 200:
+        print(f"Failed to fetch page {current_page}. Status code: {response.status_code}")
         continue
 
-    Scrape = BeautifulSoup(Source.text, 'html.parser')
+    soup = BeautifulSoup(response.text, 'html.parser')
 
-    for article in Scrape.find_all('article'):
+    for article in soup.find_all('article'):
         # Grabbing book titles
         title_element = article.h3.a
         title = title_element.text.strip() if title_element else ''
@@ -29,17 +43,16 @@ for page in range(1, 2):
         # Grabbing book price
         price_container = article.find('div', class_='product_price')
         price = price_container.p.text.strip() if price_container else ''
-        Price.append(price)
+        prices.append(price)
 
         # Grabbing stock availability of each book
-        stock_element = Scrape.find('p', class_='instock availability')
-        stock_availability = stock_element.text.strip() if stock_element else ''
-        Stock_availability.append(stock_availability)
+        stock_element = article.find('p', class_='instock availability')
+        stock_availability.append(stock_element.text.strip() if stock_element else '')
 
         # Grabbing the link of each book
         link_element = article.find('a', href=True)
         url = 'https://books.toscrape.com/catalogue/' + link_element['href'] if link_element else ''
-        Books_url.append(url)
+        books_url.append(url)
 
         # Extracting additional information from each individual book's page
         book_response = requests.get(url)
@@ -53,10 +66,18 @@ for page in range(1, 2):
         description_element = book_soup.find('meta', {'name': 'description'})
         book_description.append(description_element['content'].strip() if description_element else '')
 
+    current_page += 1
+
 # Outputs to CSV
-Scraped_Data = {'TITLE': books, 'PRICE': Price, 'STOCK AVAILABILITY': Stock_availability, 'URL': Books_url, 'UPC': upc, 'DESCRIPTION': book_description}
-Scraped_Books = pd.DataFrame(Scraped_Data)
-Scraped_Books.to_csv('SCB.csv', index=None)
+scraped_data = {
+    'TITLE': books,
+    'PRICE': prices,
+    'STOCK AVAILABILITY': stock_availability,
+    'URL': books_url,
+    'UPC': upc,
+    'DESCRIPTION': book_description
+}
+scraped_books = pd.DataFrame(scraped_data)
+scraped_books.to_csv('scraped_books.csv', index=None)
 
-print(Books_url)
-
+print("Data scraping and CSV creation completed successfully!")
