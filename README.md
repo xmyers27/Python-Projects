@@ -1,0 +1,1 @@
+Hello, my name is Angel Macias and this is my python project. The purpose of this project was to create a program that is a webscraper, scraping information from the Books to scrape website. This program uses BeautifulSoup to scrape information from the website such as the title, descriptions, prices, images and other information on the site.
